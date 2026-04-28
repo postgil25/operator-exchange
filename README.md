@@ -13,9 +13,3 @@ Operator Exchange is a "headless" directory platform designed to bridge the gap 
 - **Frontend:** Vanilla HTML5, CSS3 (Modern Glassmorphism), Vanilla JavaScript.
 - **Data Layer:** Live CSV ingestion via Fetch API.
 - **Deployment:** GitHub Pages.
-
-## 🔧 Setup
-1. Clone the repo.
-2. Update `CSV_URL` in `app.js` with your published Google Sheet CSV link.
-3. Update `WA` constant in `app.js` with your business WhatsApp number.
-4. Deploy to GitHub Pages.
