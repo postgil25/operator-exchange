@@ -337,12 +337,42 @@
         initBackToTop();
 
         try {
-            const res = await fetch(CSV_URL);
-            const text = await res.text();
+            const cacheKey = 'op_exchange_csv';
+            const cacheTimeKey = 'op_exchange_time';
+            const cacheDuration = 15 * 60 * 1000; // 15 minutes
+            
+            const now = Date.now();
+            const cachedTime = localStorage.getItem(cacheTimeKey);
+            const cachedData = localStorage.getItem(cacheKey);
+            
+            let text = '';
+            
+            // If we have valid cache, use it immediately
+            if (cachedData && cachedTime && (now - cachedTime < cacheDuration)) {
+                text = cachedData;
+                // Still fetch silently in background to keep cache fresh
+                fetch(CSV_URL).then(res => res.text()).then(newText => {
+                    localStorage.setItem(cacheKey, newText);
+                    localStorage.setItem(cacheTimeKey, Date.now());
+                }).catch(e => console.error("Background sync failed", e));
+            } else {
+                // No cache or expired, fetch synchronously
+                const res = await fetch(CSV_URL);
+                text = await res.text();
+                localStorage.setItem(cacheKey, text);
+                localStorage.setItem(cacheTimeKey, now);
+            }
+
             const normalised = normalise(parseCSV(text));
             operators = normalised.length > 0 ? normalised : DEMO;
         } catch(e) {
-            operators = DEMO;
+            console.error("Fetch failed, falling back to cache or DEMO", e);
+            const cachedData = localStorage.getItem('op_exchange_csv');
+            if (cachedData) {
+                operators = normalise(parseCSV(cachedData));
+            } else {
+                operators = DEMO;
+            }
         }
 
         countUp(document.getElementById('stat-operators'), operators.length, 900);
