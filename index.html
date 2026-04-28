@@ -123,6 +123,15 @@
         .chip-count { font-size: 0.7rem; opacity: 0.6; background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; }
         .chip.active .chip-count { background: rgba(0,0,0,0.2); }
 
+        /* TOGGLE */
+        .toggle-wrap { display: flex; align-items: center; gap: 10px; margin-left: auto; cursor: pointer; }
+        .toggle-label { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .toggle-bg { width: 40px; height: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; position: relative; transition: var(--transition); }
+        .toggle-circle { width: 14px; height: 14px; background: var(--text-muted); border-radius: 50%; position: absolute; top: 2px; left: 3px; transition: var(--transition); }
+        .toggle-wrap.active .toggle-bg { background: var(--accent); border-color: var(--accent); }
+        .toggle-wrap.active .toggle-circle { transform: translateX(20px); background: #000; }
+        .toggle-wrap.active .toggle-label { color: var(--accent); }
+
         /* GRID */
         #operators-section { padding: 48px 0 80px; }
         .operators-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
@@ -235,9 +244,12 @@
         .meta-label { display: block; font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 600; }
         .meta-value { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
         
-        .modal-section { margin-bottom: 24px; }
-        .modal-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
-        .modal-section p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; white-space: pre-line; }
+        .modal-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        .modal-section:last-child { border-bottom: none; }
+        .modal-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .logic-step { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.7; white-space: pre-line; margin-top: 12px; }
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 16px; border: 1px solid var(--border); }
+        .video-container iframe { width: 100%; height: 100%; border: none; }
         
         .modal-notice {
             display: flex; gap: 14px; padding: 18px; border-radius: var(--radius-sm);
@@ -358,6 +370,12 @@
                 <div class="filter-chips" id="filter-chips">
                     <button class="chip active" data-trade="all">All Trades</button>
                 </div>
+                <div class="toggle-wrap" id="availability-toggle">
+                    <span class="toggle-label">Available Only</span>
+                    <div class="toggle-bg">
+                        <div class="toggle-circle"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -383,10 +401,8 @@
         <div class="modal-container">
             <button class="modal-close" id="modal-close" aria-label="Close modal">✕</button>
             <div class="modal-body">
-                <div class="modal-video-wrap" id="modal-video-wrap"></div>
-                <div class="proof-standard-notice">
-                    <span>🛡️</span>
-                    <span>Proof Standard: Verified 15-30s maneuver with thumbs-up or date-sign.</span>
+                <div class="modal-multi-assets" id="modal-multi-assets">
+                    <!-- Dynamic Video + Logic pairs will go here -->
                 </div>
                 <div class="modal-info">
                     <div class="modal-header">

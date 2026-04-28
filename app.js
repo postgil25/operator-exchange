@@ -4,16 +4,13 @@
 
     const DEMO = [
         { name:'Adebayo Okoro', trade:'Excavator Operator', photo:'', machines:'CAT 320D, Komatsu PC200', hours:'8,500 hrs', env:'Swamp, Urban, Highway', steps:'Step 1: Positioned the CAT 320D at a 30° offset from the trench line to maximise reach without destabilising the bank.\nStep 2: Engaged a controlled bucket-drag to clear waterlogged clay — gear set to Fine Mode to prevent over-dig.\nStep 3: Used the boom-float function to level the trench base within ±5cm tolerance, verified by laser level.', video:'', availability:'Available', maneuver_fee:'' },
-        { name:'Chinedu Amadi', trade:'Crane Operator', photo:'', machines:'Liebherr LTM 1100, Tadano GR-800EX', hours:'12,000 hrs', env:'High-Rise, Industrial, Port', steps:'Step 1: Conducted a pre-lift radius check — confirmed the 40-ton load was within 85% of the chart capacity at 18m radius.\nStep 2: Executed a blind lift using a signal man on channel 4. Maintained a 2m/min hoist speed to prevent swing.\nStep 3: Set the load down on a 3-point crib stack, achieving zero-contact with adjacent structural steel.', video:'', availability:'On Project', maneuver_fee:'' },
-        { name:'Fatima Bello', trade:'Bulldozer Operator', photo:'', machines:'CAT D8T, Komatsu D65PX', hours:'6,200 hrs', env:'Road Construction, Mining, Land Clearing', steps:'Step 1: Set the blade to a 15° angle-tilt for side-casting spoil on a 6% grade without losing material downhill.\nStep 2: Maintained constant track speed in 2nd gear to build uniform compaction on the sub-base layer.\nStep 3: Used GPS-guided auto-blade to finish-grade the surface to ±2cm of design elevation.', video:'', availability:'Open to Offers', maneuver_fee:'' },
-        { name:'Ibrahim Yusuf', trade:'Roller Operator', photo:'', machines:'BOMAG BW 213, Dynapac CA2500', hours:'4,800 hrs', env:'Asphalt, Road Construction, Dam', steps:'Step 1: Set the BOMAG to high-amplitude vibration for the initial 3 passes on the aggregate base course.\nStep 2: Switched to low-amplitude for the final 2 passes to avoid crushing the aggregate and maintain interlock.\nStep 3: Applied a static finish pass on the asphalt wearing course at 3 km/h to eliminate roller marks.', video:'', availability:'Available', maneuver_fee:'8,000' },
-        { name:'Blessing Eze', trade:'Forklift Operator', photo:'', machines:'Toyota 8FG25, Hyster H50FT', hours:'3,400 hrs', env:'Warehouse, Port, Manufacturing', steps:'Step 1: Approached the 2.2-ton pallet stack at creep speed with mast tilted 4° back for load stability.\nStep 2: Inserted forks to full depth, confirmed even weight distribution before lifting above 3m rack height.\nStep 3: Deposited load on the 4th tier rack with ±3cm lateral accuracy using side-shift adjustment.', video:'', availability:'Available', maneuver_fee:'5,000' },
-        { name:'Emeka Nwosu', trade:'Grader Operator', photo:'', machines:'CAT 140M, John Deere 672G', hours:'7,100 hrs', env:'Road Construction, Mining, Airport', steps:'Step 1: Set the moldboard at a 45° angle with 12° of blade lean to windrow material to the road shoulder.\nStep 2: Maintained a consistent 4 km/h pass speed to achieve uniform cut depth on laterite sub-grade.\nStep 3: Final-trimmed the crown at 3% cross-slope using laser-guided controls for drainage compliance.', video:'', availability:'On Project', maneuver_fee:'' }
+        { name:'Chinedu Amadi', trade:'Crane Operator', photo:'', machines:'Liebherr LTM 1100, Tadano GR-800EX', hours:'12,000 hrs', env:'High-Rise, Industrial, Port', steps:'Step 1: Conducted a pre-lift radius check — confirmed the 40-ton load was within 85% of the chart capacity at 18m radius.\nStep 2: Executed a blind lift using a signal man on channel 4. Maintained a 2m/min hoist speed to prevent swing.\nStep 3: Set the load down on a 3-point crib stack, achieving zero-contact with adjacent structural steel.', video:'', availability:'On Project', maneuver_fee:'' }
     ];
 
     let operators = [];
     let activeTrade = 'all';
     let searchTerm = '';
+    let showAvailableOnly = false;
     let initialRenderDone = false;
     let isDemoMode = false;
 
@@ -50,9 +47,12 @@
     }
 
     function matchCol(row, keywords) {
-        for (const key of Object.keys(row))
-            for (const kw of keywords)
-                if (key.includes(kw)) return row[key];
+        for (const key of Object.keys(row)) {
+            for (const kw of keywords) {
+                // Returns first non-empty match
+                if (key.includes(kw) && row[key].trim() !== '') return row[key];
+            }
+        }
         return '';
     }
 
@@ -65,7 +65,7 @@
             hours:        matchCol(r, ['career seat time','seat time','hours']) || '',
             env:          matchCol(r, ['environment mastery','environment']) || '',
             steps:        matchCol(r, ['operational logic','logic','steps']) || '',
-            video:        matchCol(r, ['proof clip','video','youtube']) || '',
+            video:        matchCol(r, ['the proof clip','proof clip','video','youtube']) || '',
             availability: matchCol(r, ['availability','status']) || '',
             maneuver_fee: matchCol(r, ['maneuver fee','custom maneuver','maneuver_fee']) || ''
         }));
@@ -105,7 +105,7 @@
             'open to offers': { color:'#60a5fa', bg:'rgba(96,165,250,0.12)', label:'◎ Open to Offers' }
         };
         const key = (status||'').toLowerCase().trim();
-        const cfg = map[key];
+        const cfg = Object.keys(map).find(k => key.includes(k)) ? map[Object.keys(map).find(k => key.includes(k))] : null;
         if (!cfg) return '';
         return `<span class="avail-badge" style="color:${cfg.color};background:${cfg.bg};border-color:${cfg.color}20">${cfg.label}</span>`;
     }
@@ -123,6 +123,11 @@
             const bacs = calcBACS(op);
             const delay = initialRenderDone ? '0s' : `${i * 0.06}s`;
             const animClass = initialRenderDone ? '' : 'animate-in';
+            
+            // Context labels for tags
+            const machineTag = op.machines ? `<span class="card-tag">⚙ ${op.machines.split(',')[0]}</span>` : '';
+            const hoursTag = op.hours ? `<span class="card-tag">⏳ ${op.hours} hrs</span>` : '';
+
             return `<div class="op-card ${animClass}" data-index="${i}" style="animation-delay:${delay}">
                 <div class="card-top">
                     <div class="card-avatar" data-photo="${op.photo}">
@@ -134,7 +139,7 @@
                         ${availabilityBadge(op.availability)}
                     </div>
                 </div>
-                <div class="card-meta">${[op.machines,op.hours].filter(Boolean).slice(0,2).map(t=>`<span class="card-tag">${t}</span>`).join('')}</div>
+                <div class="card-meta">${machineTag}${hoursTag}</div>
                 <div class="card-bacs">
                     <span class="bacs-label">BACS Competence Score</span>
                     <span class="bacs-score">${bacs}</span>
@@ -143,7 +148,7 @@
             </div>`;
         }).join('');
 
-        // Lazy photo load with initials fallback
+        // Lazy photo load
         grid.querySelectorAll('.card-avatar').forEach(av => {
             const url = av.dataset.photo;
             if (url) {
@@ -164,7 +169,7 @@
         initialRenderDone = true;
     }
 
-    // --- Filter Chips with counts ---
+    // --- Filter Chips & Toggle ---
     function buildChips(ops) {
         const trades = [...new Set(ops.map(o => o.trade))].sort();
         const container = document.getElementById('filter-chips');
@@ -181,11 +186,22 @@
                 applyFilters();
             });
         });
+
+        // Availability Toggle
+        const toggle = document.getElementById('availability-toggle');
+        toggle.addEventListener('click', () => {
+            showAvailableOnly = !showAvailableOnly;
+            toggle.classList.toggle('active', showAvailableOnly);
+            applyFilters();
+        });
     }
 
     function applyFilters() {
         let filtered = operators;
         if (activeTrade !== 'all') filtered = filtered.filter(o => o.trade === activeTrade);
+        if (showAvailableOnly) {
+            filtered = filtered.filter(o => (o.availability||'').toLowerCase().includes('available'));
+        }
         if (searchTerm) {
             const s = searchTerm.toLowerCase();
             filtered = filtered.filter(o =>
@@ -203,25 +219,57 @@
         return m ? m[1] : null;
     }
 
-    // --- Open Modal ---
+    // --- Open Modal (Multi-Video) ---
     function openModal(op) {
         const modal = document.getElementById('operator-modal');
         const bacs = calcBACS(op);
+        const assetContainer = document.getElementById('modal-multi-assets');
+        assetContainer.innerHTML = '';
 
-        // Video
-        const videoWrap = document.getElementById('modal-video-wrap');
-        const ytId = extractYouTubeId(op.video);
-        if (ytId) {
-            videoWrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" allowfullscreen loading="lazy"></iframe>`;
-        } else if (op.video && (op.video.includes('drive.google.com') || op.video.endsWith('.mp4'))) {
-            let src = op.video;
-            if (src.includes('drive.google.com') && src.includes('/file/d/')) {
-                const fid = src.match(/\/file\/d\/([^/]+)/);
-                if (fid) src = `https://drive.google.com/file/d/${fid[1]}/preview`;
-            }
-            videoWrap.innerHTML = `<iframe src="${src}" allowfullscreen loading="lazy"></iframe>`;
+        // Parse Multiple Videos & Logics
+        // We split by common delimiters and pair them up
+        const videos = (op.video || '').split(/[,\n]/).map(v => v.trim()).filter(v => v !== '');
+        const logics = (op.steps || '').split(/Step 1:|Video \d:|Logic \d:/i).map(l => l.trim()).filter(l => l !== '');
+        
+        if (videos.length === 0) {
+            assetContainer.innerHTML = `
+                <div class="video-container">
+                    <div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Video proof pending upload</span></div>
+                </div>
+                <div class="proof-standard-notice">
+                    <span>🛡️</span>
+                    <span>Proof Standard: Verified 15-30s maneuver with thumbs-up or date-sign.</span>
+                </div>`;
         } else {
-            videoWrap.innerHTML = `<div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Video proof pending upload</span></div>`;
+            videos.forEach((vid, index) => {
+                const ytId = extractYouTubeId(vid);
+                let videoHTML = '';
+                if (ytId) {
+                    videoHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" allowfullscreen loading="lazy"></iframe>`;
+                } else if (vid.includes('drive.google.com') || vid.endsWith('.mp4')) {
+                    let src = vid;
+                    if (src.includes('drive.google.com') && src.includes('/file/d/')) {
+                        const fid = src.match(/\/file\/d\/([^/]+)/);
+                        if (fid) src = `https://drive.google.com/file/d/${fid[1]}/preview`;
+                    }
+                    videoHTML = `<iframe src="${src}" allowfullscreen loading="lazy"></iframe>`;
+                } else {
+                    videoHTML = `<div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Format not supported</span></div>`;
+                }
+
+                const logicText = logics[index] || 'Operational logic for this video not yet submitted.';
+
+                assetContainer.innerHTML += `
+                    <div class="modal-section">
+                        <h3><span>🎬</span> Proof Segment ${index + 1}</h3>
+                        <div class="video-container">${videoHTML}</div>
+                        <div class="proof-standard-notice">
+                            <span>🛡️</span>
+                            <span>Proof Standard: Verified 15-30s maneuver with thumbs-up or date-sign.</span>
+                        </div>
+                        <div class="logic-step"><strong>🔧 Operational Logic:</strong><br>${logicText}</div>
+                    </div>`;
+            });
         }
 
         // Photo with fallback
@@ -240,15 +288,13 @@
         document.getElementById('modal-machines').textContent = op.machines || 'Not specified';
         document.getElementById('modal-hours').textContent = op.hours || 'Not specified';
         document.getElementById('modal-env').textContent = op.env || 'Not specified';
-        document.getElementById('modal-steps').textContent = op.steps || 'Operational logic not yet submitted.';
 
-        // WhatsApp — include trade
+        // WhatsApp
         const encodedName = encodeURIComponent(op.name);
         const encodedTrade = encodeURIComponent(op.trade);
         document.getElementById('btn-hire').href =
             `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_%20and%20the%20timeline%20is%20_.`;
 
-        // Dynamic maneuver fee
         const maneuverBtn = document.getElementById('btn-maneuver');
         const fee = (op.maneuver_fee||'').replace(/[^0-9,]/g,'').trim();
         if (fee) {
@@ -259,7 +305,6 @@
             maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).%20Please%20advise%20on%20the%20fee%20%E2%80%94%20I%20understand%20machine%20hire%20costs%20may%20apply.`;
         }
 
-        document.getElementById('bacs-popover').classList.remove('visible');
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
@@ -267,8 +312,7 @@
     function closeModal() {
         document.getElementById('operator-modal').style.display = 'none';
         document.body.style.overflow = '';
-        document.getElementById('modal-video-wrap').innerHTML = '';
-        document.getElementById('bacs-popover').classList.remove('visible');
+        document.getElementById('modal-multi-assets').innerHTML = '';
     }
 
     // --- Back to Top ---
@@ -278,18 +322,6 @@
         btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
-    // --- Fetch with timeout ---
-    function fetchWithTimeout(url, ms) {
-        return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-                const msg = document.getElementById('loading-msg');
-                if (msg) msg.textContent = 'Taking longer than usual — loading local data…';
-                reject(new Error('Timeout'));
-            }, ms);
-            fetch(url).then(r => { clearTimeout(timer); resolve(r); }).catch(e => { clearTimeout(timer); reject(e); });
-        });
-    }
-
     // --- Init ---
     async function init() {
         document.getElementById('modal-close').addEventListener('click', closeModal);
@@ -297,30 +329,21 @@
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
         document.getElementById('search-input').addEventListener('input', e => { searchTerm = e.target.value; applyFilters(); });
 
-        // BACS popover toggle
         document.getElementById('bacs-info-btn').addEventListener('click', e => {
             e.stopPropagation();
             document.getElementById('bacs-popover').classList.toggle('visible');
-        });
-        document.addEventListener('click', e => {
-            const pop = document.getElementById('bacs-popover');
-            if (!pop.contains(e.target) && e.target.id !== 'bacs-info-btn') pop.classList.remove('visible');
         });
 
         initBackToTop();
 
         try {
-            const res = await fetchWithTimeout(CSV_URL, 8000);
+            const res = await fetch(CSV_URL);
             const text = await res.text();
             const normalised = normalise(parseCSV(text));
             operators = normalised.length > 0 ? normalised : DEMO;
-            if (normalised.length === 0) isDemoMode = true;
         } catch(e) {
-            console.warn('CSV fetch failed, using demo data:', e);
-            operators = DEMO; isDemoMode = true;
+            operators = DEMO;
         }
-
-        if (isDemoMode) document.getElementById('demo-banner').style.display = 'flex';
 
         countUp(document.getElementById('stat-operators'), operators.length, 900);
         countUp(document.getElementById('stat-trades'), new Set(operators.map(o => o.trade)).size, 900);
