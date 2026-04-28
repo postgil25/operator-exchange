@@ -3,14 +3,13 @@
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/1t8sywPs9mSf4p3tNqrOzbd9nYujvwv2ixyPmtP6ltEo/export?format=csv&gid=1489947803';
 
     const DEMO = [
-        { name:'Adebayo Okoro', trade:'Excavator Operator', photo:'', machines:'CAT 320D, Komatsu PC200', hours:'8,500 hrs', env:'Swamp, Urban, Highway', steps:'Step 1: Positioned the CAT 320D at a 30° offset from the trench line to maximise reach without destabilising the bank.\nStep 2: Engaged a controlled bucket-drag to clear waterlogged clay — gear set to Fine Mode to prevent over-dig.\nStep 3: Used the boom-float function to level the trench base within ±5cm tolerance, verified by laser level.', video:'', availability:'Available', maneuver_fee:'' },
-        { name:'Chinedu Amadi', trade:'Crane Operator', photo:'', machines:'Liebherr LTM 1100, Tadano GR-800EX', hours:'12,000 hrs', env:'High-Rise, Industrial, Port', steps:'Step 1: Conducted a pre-lift radius check — confirmed the 40-ton load was within 85% of the chart capacity at 18m radius.\nStep 2: Executed a blind lift using a signal man on channel 4. Maintained a 2m/min hoist speed to prevent swing.\nStep 3: Set the load down on a 3-point crib stack, achieving zero-contact with adjacent structural steel.', video:'', availability:'On Project', maneuver_fee:'' }
+        { name:'Adebayo Okoro', trade:'Excavator Operator', photo:'', machines:'CAT 320D, Komatsu PC200', hours:'8,500 hrs', env:'Swamp, Urban, Highway', steps:'Step 1: Positioned the CAT 320D at a 30° offset from the trench line to maximise reach without destabilising the bank.\nStep 2: Engaged a controlled bucket-drag to clear waterlogged clay — gear set to Fine Mode to prevent over-dig.\nStep 3: Used the boom-float function to level the trench base within ±5cm tolerance, verified by laser level.', video:'', availability:'Available', maneuver_fee:'', cert:'' },
+        { name:'Chinedu Amadi', trade:'Crane Operator', photo:'', machines:'Liebherr LTM 1100, Tadano GR-800EX', hours:'12,000 hrs', env:'High-Rise, Industrial, Port', steps:'Step 1: Conducted a pre-lift radius check — confirmed the 40-ton load was within 85% of the chart capacity at 18m radius.\nStep 2: Executed a blind lift using a signal man on channel 4. Maintained a 2m/min hoist speed to prevent swing.\nStep 3: Set the load down on a 3-point crib stack, achieving zero-contact with adjacent structural steel.', video:'', availability:'On Project', maneuver_fee:'', cert:'' }
     ];
 
     let operators = [];
     let activeTrade = 'all';
     let searchTerm = '';
-    let showAvailableOnly = false;
     let initialRenderDone = false;
     let isDemoMode = false;
 
@@ -49,7 +48,6 @@
     function matchCol(row, keywords) {
         for (const key of Object.keys(row)) {
             for (const kw of keywords) {
-                // Returns first non-empty match
                 if (key.includes(kw) && row[key].trim() !== '') return row[key];
             }
         }
@@ -67,7 +65,8 @@
             steps:        matchCol(r, ['operational logic','logic','steps']) || '',
             video:        matchCol(r, ['the proof clip','proof clip','video','youtube']) || '',
             availability: matchCol(r, ['availability','status']) || '',
-            maneuver_fee: matchCol(r, ['maneuver fee','custom maneuver','maneuver_fee']) || ''
+            maneuver_fee: matchCol(r, ['maneuver fee','custom maneuver','maneuver_fee']) || '',
+            cert:         matchCol(r, ['certificate','id','nimc']) || ''
         }));
     }
 
@@ -123,12 +122,12 @@
             const bacs = calcBACS(op);
             const delay = initialRenderDone ? '0s' : `${i * 0.06}s`;
             const animClass = initialRenderDone ? '' : 'animate-in';
+            const isInactive = !(op.availability||'').toLowerCase().includes('available');
             
-            // Context labels for tags
             const machineTag = op.machines ? `<span class="card-tag">⚙ ${op.machines.split(',')[0]}</span>` : '';
             const hoursTag = op.hours ? `<span class="card-tag">⏳ ${op.hours} hrs</span>` : '';
 
-            return `<div class="op-card ${animClass}" data-index="${i}" style="animation-delay:${delay}">
+            return `<div class="op-card ${animClass} ${isInactive ? 'inactive' : ''}" data-index="${i}" style="animation-delay:${delay}">
                 <div class="card-top">
                     <div class="card-avatar" data-photo="${op.photo}">
                         <span class="avatar-initials">${getInitials(op.name)}</span>
@@ -148,7 +147,6 @@
             </div>`;
         }).join('');
 
-        // Lazy photo load
         grid.querySelectorAll('.card-avatar').forEach(av => {
             const url = av.dataset.photo;
             if (url) {
@@ -169,7 +167,6 @@
         initialRenderDone = true;
     }
 
-    // --- Filter Chips & Toggle ---
     function buildChips(ops) {
         const trades = [...new Set(ops.map(o => o.trade))].sort();
         const container = document.getElementById('filter-chips');
@@ -186,22 +183,11 @@
                 applyFilters();
             });
         });
-
-        // Availability Toggle
-        const toggle = document.getElementById('availability-toggle');
-        toggle.addEventListener('click', () => {
-            showAvailableOnly = !showAvailableOnly;
-            toggle.classList.toggle('active', showAvailableOnly);
-            applyFilters();
-        });
     }
 
     function applyFilters() {
         let filtered = operators;
         if (activeTrade !== 'all') filtered = filtered.filter(o => o.trade === activeTrade);
-        if (showAvailableOnly) {
-            filtered = filtered.filter(o => (o.availability||'').toLowerCase().includes('available'));
-        }
         if (searchTerm) {
             const s = searchTerm.toLowerCase();
             filtered = filtered.filter(o =>
@@ -219,15 +205,13 @@
         return m ? m[1] : null;
     }
 
-    // --- Open Modal (Multi-Video) ---
+    // --- Open Modal ---
     function openModal(op) {
         const modal = document.getElementById('operator-modal');
         const bacs = calcBACS(op);
         const assetContainer = document.getElementById('modal-multi-assets');
         assetContainer.innerHTML = '';
 
-        // Parse Multiple Videos & Logics
-        // We split by common delimiters and pair them up
         const videos = (op.video || '').split(/[,\n]/).map(v => v.trim()).filter(v => v !== '');
         const logics = (op.steps || '').split(/Step 1:|Video \d:|Logic \d:/i).map(l => l.trim()).filter(l => l !== '');
         
@@ -235,10 +219,6 @@
             assetContainer.innerHTML = `
                 <div class="video-container">
                     <div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Video proof pending upload</span></div>
-                </div>
-                <div class="proof-standard-notice">
-                    <span>🛡️</span>
-                    <span>Proof Standard: Verified 15-30s maneuver with thumbs-up or date-sign.</span>
                 </div>`;
         } else {
             videos.forEach((vid, index) => {
@@ -263,16 +243,12 @@
                     <div class="modal-section">
                         <h3><span>🎬</span> Proof Segment ${index + 1}</h3>
                         <div class="video-container">${videoHTML}</div>
-                        <div class="proof-standard-notice">
-                            <span>🛡️</span>
-                            <span>Proof Standard: Verified 15-30s maneuver with thumbs-up or date-sign.</span>
-                        </div>
                         <div class="logic-step"><strong>🔧 Operational Logic:</strong><br>${logicText}</div>
                     </div>`;
             });
         }
 
-        // Photo with fallback
+        // Photo
         const photoEl = document.getElementById('modal-photo');
         photoEl.style.display = 'none';
         if (op.photo) {
@@ -288,15 +264,38 @@
         document.getElementById('modal-machines').textContent = op.machines || 'Not specified';
         document.getElementById('modal-hours').textContent = op.hours || 'Not specified';
         document.getElementById('modal-env').textContent = op.env || 'Not specified';
+        document.getElementById('modal-steps').textContent = op.steps || 'Operational logic not yet submitted.';
 
-        // WhatsApp
-        const encodedName = encodeURIComponent(op.name);
-        const encodedTrade = encodeURIComponent(op.trade);
-        document.getElementById('btn-hire').href =
-            `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_%20and%20the%20timeline%20is%20_.`;
+        // Gated Certification
+        const certSection = document.getElementById('id-gate-section');
+        const certImage = document.getElementById('modal-id-image');
+        if (op.cert) {
+            certImage.src = op.cert;
+            certSection.style.display = 'block';
+        } else {
+            certSection.style.display = 'none';
+        }
+
+        // WhatsApp Hiring
+        const isAvailable = (op.availability||'').toLowerCase().includes('available');
+        const btnHire = document.getElementById('btn-hire');
+        const btnHireDisabled = document.getElementById('btn-hire-disabled');
+        
+        if (isAvailable) {
+            btnHire.style.display = 'flex';
+            btnHireDisabled.style.display = 'none';
+            const encodedName = encodeURIComponent(op.name);
+            const encodedTrade = encodeURIComponent(op.trade);
+            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_%20and%20the%20timeline%20is%20_.`;
+        } else {
+            btnHire.style.display = 'none';
+            btnHireDisabled.style.display = 'flex';
+        }
 
         const maneuverBtn = document.getElementById('btn-maneuver');
         const fee = (op.maneuver_fee||'').replace(/[^0-9,]/g,'').trim();
+        const encodedName = encodeURIComponent(op.name);
+        const encodedTrade = encodeURIComponent(op.trade);
         if (fee) {
             maneuverBtn.innerHTML = `<span>🎥</span> Request Custom Maneuver — ₦${fee}`;
             maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).%20I%20am%20ready%20to%20pay%20the%20%E2%82%A6${encodeURIComponent(fee)}%20coordination%20fee.`;
@@ -315,14 +314,12 @@
         document.getElementById('modal-multi-assets').innerHTML = '';
     }
 
-    // --- Back to Top ---
     function initBackToTop() {
         const btn = document.getElementById('back-to-top');
         window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 400));
         btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
-    // --- Init ---
     async function init() {
         document.getElementById('modal-close').addEventListener('click', closeModal);
         document.getElementById('operator-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });

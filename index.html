@@ -123,15 +123,6 @@
         .chip-count { font-size: 0.7rem; opacity: 0.6; background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; }
         .chip.active .chip-count { background: rgba(0,0,0,0.2); }
 
-        /* TOGGLE */
-        .toggle-wrap { display: flex; align-items: center; gap: 10px; margin-left: auto; cursor: pointer; }
-        .toggle-label { font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-        .toggle-bg { width: 40px; height: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; position: relative; transition: var(--transition); }
-        .toggle-circle { width: 14px; height: 14px; background: var(--text-muted); border-radius: 50%; position: absolute; top: 2px; left: 3px; transition: var(--transition); }
-        .toggle-wrap.active .toggle-bg { background: var(--accent); border-color: var(--accent); }
-        .toggle-wrap.active .toggle-circle { transform: translateX(20px); background: #000; }
-        .toggle-wrap.active .toggle-label { color: var(--accent); }
-
         /* GRID */
         #operators-section { padding: 48px 0 80px; }
         .operators-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
@@ -260,6 +251,19 @@
         .modal-notice strong { font-size: 0.9rem; display: block; margin-bottom: 4px; }
         .modal-notice p { font-size: 0.82rem; color: var(--text-secondary); }
         
+        /* TRUST GATE (ID BLUR) */
+        .id-gate-section { margin-top: 24px; }
+        .id-blur-box {
+            position: relative; width: 100%; height: 160px; border-radius: var(--radius-sm);
+            background: #111; border: 1px solid var(--border); overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .id-image-blurred { width: 100%; height: 100%; object-fit: cover; filter: blur(12px) brightness(0.6); opacity: 0.5; }
+        .id-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 20px; }
+        .id-lock-icon { font-size: 1.5rem; color: var(--accent); }
+        .id-lock-text { font-size: 0.75rem; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        .id-lock-sub { font-size: 0.65rem; color: var(--text-muted); max-width: 200px; }
+        
         .modal-actions { display: flex; gap: 12px; flex-wrap: wrap; }
         .btn {
             flex: 1; min-width: 200px; padding: 16px 24px; border-radius: var(--radius-sm);
@@ -370,12 +374,6 @@
                 <div class="filter-chips" id="filter-chips">
                     <button class="chip active" data-trade="all">All Trades</button>
                 </div>
-                <div class="toggle-wrap" id="availability-toggle">
-                    <span class="toggle-label">Available Only</span>
-                    <div class="toggle-bg">
-                        <div class="toggle-circle"></div>
-                    </div>
-                </div>
             </div>
         </div>
     </section>
@@ -447,6 +445,18 @@
                     <div class="modal-section">
                         <h3>🔧 Operational Logic</h3>
                         <p id="modal-steps"></p>
+                    </div>
+
+                    <div class="id-gate-section" id="id-gate-section" style="display:none">
+                        <span class="meta-label">Verified Certification / ID</span>
+                        <div class="id-blur-box">
+                            <img id="modal-id-image" class="id-image-blurred" src="" alt="Blurred ID">
+                            <div class="id-overlay">
+                                <span class="id-lock-icon">🔒</span>
+                                <span class="id-lock-text">Verified Document</span>
+                                <span class="id-lock-sub">Full access granted to verified employers after coordination.</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-notice">
                         <span class="notice-icon">💡</span>
