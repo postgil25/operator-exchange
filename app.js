@@ -243,7 +243,7 @@
                     <div class="modal-section">
                         <h3><span>🎬</span> Proof Segment ${index + 1}</h3>
                         <div class="video-container">${videoHTML}</div>
-                        <div class="logic-step"><strong>🔧 Operational Logic:</strong><br>${logicText}</div>
+                        <div class="logic-step" style="border-left: 2px solid var(--accent); padding-left: 16px; margin-top: 16px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 4px;"><strong>🔧 Operational Logic:</strong><br><span style="opacity:0.9; font-style: italic;">${logicText}</span></div>
                     </div>`;
             });
         }
@@ -263,8 +263,9 @@
         document.getElementById('modal-availability').innerHTML = availabilityBadge(op.availability);
         document.getElementById('modal-machines').textContent = op.machines || 'Not specified';
         document.getElementById('modal-hours').textContent = op.hours || 'Not specified';
-        document.getElementById('modal-env').textContent = op.env || 'Not specified';
-        document.getElementById('modal-steps').textContent = op.steps || 'Operational logic not yet submitted.';
+        const envList = (op.env || 'Not specified').split(',').map(e => `<span style="display:inline-block; padding:4px 8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; font-size:0.75rem; font-weight:600; margin-right:6px; margin-bottom:6px;">${e.trim()}</span>`).join('');
+        document.getElementById('modal-env').innerHTML = envList;
+        document.getElementById('modal-steps').innerHTML = `<div style="border-left: 2px solid var(--accent); padding-left: 16px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 4px; white-space: pre-line; font-style: italic; color: var(--text-primary); font-size: 0.95rem;">${op.steps || 'Operational logic not yet submitted.'}</div>`;
 
         // Gated Certification
         const certSection = document.getElementById('id-gate-section');
@@ -276,20 +277,22 @@
             certSection.style.display = 'none';
         }
 
-        // WhatsApp Hiring
+        // WhatsApp Hiring / Waitlist routing
         const isAvailable = (op.availability||'').toLowerCase().includes('available');
         const btnHire = document.getElementById('btn-hire');
-        const btnHireDisabled = document.getElementById('btn-hire-disabled');
+        const encodedName = encodeURIComponent(op.name);
+        const encodedTrade = encodeURIComponent(op.trade);
+        
+        btnHire.style.display = 'flex'; // Ensure it's always visible
         
         if (isAvailable) {
-            btnHire.style.display = 'flex';
-            btnHireDisabled.style.display = 'none';
-            const encodedName = encodeURIComponent(op.name);
-            const encodedTrade = encodeURIComponent(op.trade);
+            btnHire.innerHTML = `<span>💬</span> Hire / Negotiate`;
+            btnHire.className = `btn btn-primary`;
             btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_%20and%20the%20timeline%20is%20_.`;
         } else {
-            btnHire.style.display = 'none';
-            btnHireDisabled.style.display = 'flex';
+            btnHire.innerHTML = `<span>⏳</span> Join Waitlist`;
+            btnHire.className = `btn btn-secondary`;
+            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20be%20notified%20when%20${encodedName}%20is%20off-project.%20Please%20add%20me%20to%20the%20waitlist.`;
         }
 
         const maneuverBtn = document.getElementById('btn-maneuver');
