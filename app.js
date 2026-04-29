@@ -339,37 +339,45 @@
         try {
             const cacheKey = 'op_exchange_csv';
             const cacheTimeKey = 'op_exchange_time';
-            const cacheDuration = 15 * 60 * 1000; // 15 minutes
-            
+            const cacheDuration = 15 * 60 * 1000;
             const now = Date.now();
-            const cachedTime = localStorage.getItem(cacheTimeKey);
-            const cachedData = localStorage.getItem(cacheKey);
+            
+            let cachedData = null;
+            let cachedTime = null;
+            try {
+                cachedData = localStorage.getItem(cacheKey);
+                cachedTime = localStorage.getItem(cacheTimeKey);
+            } catch(storageErr) {
+                console.warn("localStorage restricted (likely file:// protocol).");
+            }
             
             let text = '';
-            
-            // If we have valid cache, use it immediately
             if (cachedData && cachedTime && (now - cachedTime < cacheDuration)) {
                 text = cachedData;
-                // Still fetch silently in background to keep cache fresh
                 fetch(CSV_URL).then(res => res.text()).then(newText => {
-                    localStorage.setItem(cacheKey, newText);
-                    localStorage.setItem(cacheTimeKey, Date.now());
-                }).catch(e => console.error("Background sync failed", e));
+                    try {
+                        localStorage.setItem(cacheKey, newText);
+                        localStorage.setItem(cacheTimeKey, Date.now());
+                    } catch(e) {}
+                }).catch(e => {});
             } else {
-                // No cache or expired, fetch synchronously
                 const res = await fetch(CSV_URL);
                 text = await res.text();
-                localStorage.setItem(cacheKey, text);
-                localStorage.setItem(cacheTimeKey, now);
+                try {
+                    localStorage.setItem(cacheKey, text);
+                    localStorage.setItem(cacheTimeKey, now);
+                } catch(e) {}
             }
 
             const normalised = normalise(parseCSV(text));
             operators = normalised.length > 0 ? normalised : DEMO;
         } catch(e) {
-            console.error("Fetch failed, falling back to cache or DEMO", e);
-            const cachedData = localStorage.getItem('op_exchange_csv');
-            if (cachedData) {
-                operators = normalise(parseCSV(cachedData));
+            console.error("Fetch failed:", e);
+            let fallbackData = null;
+            try { fallbackData = localStorage.getItem('op_exchange_csv'); } catch(err) {}
+            
+            if (fallbackData) {
+                operators = normalise(parseCSV(fallbackData));
             } else {
                 operators = DEMO;
             }

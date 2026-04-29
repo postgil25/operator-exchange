@@ -96,6 +96,9 @@
             align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.8rem;
             animation: bob 2s ease-in-out infinite; pointer-events: none; z-index: 10;
         }
+        @media(max-height: 800px) {
+            .scroll-indicator { display: none; }
+        }
         .scroll-arrow { font-size: 1.2rem; }
     </style>
     <style id="component-styles">
