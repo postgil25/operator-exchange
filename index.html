@@ -239,8 +239,73 @@
         }
     </style>
     <style id="component-styles">
-        /* Standard card and modal styles remain identical to your current design */
-        /* [Omitting identical CSS for brevity] */
+        .op-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; cursor: pointer; transition: var(--transition); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; }
+        .op-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--accent); opacity: 0; transition: var(--transition); }
+        .op-card:hover { transform: translateY(-5px); background: var(--bg-card-hover); border-color: rgba(245, 158, 11, 0.3); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow); }
+        .op-card:hover::before { opacity: 1; }
+        .op-card.inactive { opacity: 0.7; }
+        .card-top { display: flex; gap: 16px; align-items: center; }
+        .card-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .avatar-initials { font-size: 1.2rem; font-weight: 700; color: var(--text-secondary); }
+        .card-identity { flex: 1; }
+        .card-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+        .card-trade { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .avail-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid transparent; }
+        .card-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+        .card-tag { background: rgba(255, 255, 255, 0.05); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-secondary); }
+        .card-bacs { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid var(--border); }
+        .bacs-label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .bacs-score { font-size: 1.4rem; font-weight: 900; color: var(--accent); }
+        .card-cta { position: absolute; bottom: -40px; left: 0; right: 0; text-align: center; padding: 12px; background: var(--accent); color: #000; font-weight: 700; font-size: 0.9rem; transition: var(--transition); }
+        .op-card:hover .card-cta { bottom: 0; }
+        .chip { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-primary); padding: 10px 18px; border-radius: 50px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: var(--transition); display: flex; align-items: center; gap: 8px; }
+        .chip:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+        .chip.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+        .chip-count { background: rgba(0, 0, 0, 0.2); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
+        .chip.active .chip-count { background: rgba(0, 0, 0, 0.3); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; opacity: 0; animation: fadeIn 0.3s forwards; }
+        .modal-content { background: var(--bg-modal); width: 100%; max-width: 800px; max-height: 90vh; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow-y: auto; position: relative; padding: 40px; transform: translateY(20px); animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .modal-close-btn { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text-secondary); width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); }
+        .modal-close-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); transform: rotate(90deg); }
+        .modal-header { display: flex; gap: 24px; align-items: center; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+        .modal-photo { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+        .modal-identity h2 { font-size: 2rem; font-weight: 800; margin-bottom: 4px; }
+        .modal-identity p { color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 12px; }
+        .modal-bacs { margin-left: auto; text-align: right; position: relative; }
+        .bacs-header { display: flex; align-items: center; gap: 8px; justify-content: flex-end; margin-bottom: 4px; }
+        .bacs-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .bacs-info { background: rgba(255, 255, 255, 0.1); border: none; color: var(--text-secondary); width: 18px; height: 18px; border-radius: 50%; font-size: 0.7rem; cursor: pointer; }
+        .bacs-popover { position: absolute; top: 100%; right: 0; background: #1e1e2d; border: 1px solid var(--border); padding: 12px; border-radius: var(--radius-sm); width: 250px; font-size: 0.85rem; color: var(--text-secondary); text-align: left; z-index: 10; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-top: 8px; }
+        .bacs-popover.visible { display: block; animation: fadeIn 0.2s; }
+        .modal-grid { margin-bottom: 32px; }
+        .modal-details { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .detail-item { background: rgba(255, 255, 255, 0.02); padding: 16px; border-radius: var(--radius-sm); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .detail-item.full-width { grid-column: 1 / -1; }
+        .detail-label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .detail-value { font-size: 1.1rem; font-weight: 500; }
+        .modal-assets { display: flex; flex-direction: column; gap: 32px; margin-bottom: 32px; }
+        .video-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: var(--radius-sm); background: #000; border: 1px solid var(--border); }
+        .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+        .no-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted); }
+        .id-gate { background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border); padding: 24px; border-radius: var(--radius-sm); text-align: center; margin-bottom: 32px; }
+        .id-gate h3 { font-size: 1.1rem; margin-bottom: 16px; color: var(--text-secondary); }
+        .id-image { max-width: 100%; height: auto; border-radius: var(--radius-sm); filter: blur(8px) brightness(0.8); transition: var(--transition); cursor: pointer; }
+        .id-image:hover { filter: blur(0) brightness(1); }
+        .modal-actions { display: flex; gap: 16px; }
+        .btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px 24px; border-radius: var(--radius); font-weight: 700; font-size: 1.1rem; text-decoration: none; transition: var(--transition); }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px var(--accent-glow); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
+        .back-to-top { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; border-radius: 50%; background: var(--accent); color: #000; border: none; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: var(--transition); z-index: 90; box-shadow: 0 5px 15px var(--accent-glow); }
+        .back-to-top.visible { opacity: 1; pointer-events: auto; }
+        .back-to-top:hover { transform: translateY(-5px); }
+        .animate-in { animation: cardEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        @keyframes cardEnter { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { to { opacity: 1; } }
+        @keyframes slideUp { to { transform: translateY(0); } }
+        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+        @media (max-width: 768px) { .modal-header { flex-direction: column; text-align: center; } .modal-bacs { margin: 0 auto; text-align: center; } .bacs-header { justify-content: center; } .modal-details { grid-template-columns: 1fr; } .modal-actions { flex-direction: column; } .modal-content { padding: 24px; } }
     </style>
 </head>
 
@@ -300,6 +365,65 @@
         <div id="loading-state" style="text-align: center; padding: 40px;">Loading...</div>
         <div id="empty-state" style="display: none; text-align: center;">No operators found.</div>
     </main>
+
+    <div id="operator-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close" class="modal-close-btn">&times;</button>
+            <div class="modal-header">
+                <img id="modal-photo" src="" alt="Operator" class="modal-photo" style="display:none;">
+                <div class="modal-identity">
+                    <h2 id="modal-name"></h2>
+                    <p id="modal-trade"></p>
+                    <div id="modal-availability"></div>
+                </div>
+                <div class="modal-bacs">
+                    <div class="bacs-header">
+                        <span class="bacs-title">BACS Score</span>
+                        <button id="bacs-info-btn" class="bacs-info">?</button>
+                    </div>
+                    <div id="modal-bacs-score" class="bacs-score"></div>
+                    <div id="bacs-popover" class="bacs-popover">
+                        BACS (Baseline Assessed Competence Score) is a proprietary diagnostic formula calculating verified hours, environment mastery, operational logic, and video proof.
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-grid">
+                <div class="modal-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Machines</span>
+                        <span id="modal-machines" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Hours</span>
+                        <span id="modal-hours" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item env-details">
+                        <span class="detail-label">Environment Mastery</span>
+                        <div id="modal-env" class="env-tags"></div>
+                    </div>
+                    <div class="detail-item full-width">
+                        <span class="detail-label">Operational Logic</span>
+                        <div id="modal-steps" class="logic-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modal-multi-assets" class="modal-assets"></div>
+
+            <div id="id-gate-section" class="id-gate" style="display:none;">
+                <h3>🔒 Verified Identification</h3>
+                <img id="modal-id-image" src="" alt="Verified ID" class="id-image">
+            </div>
+
+            <div class="modal-actions">
+                <a href="#" id="btn-hire" class="btn btn-primary" target="_blank"></a>
+                <a href="#" id="btn-maneuver" class="btn btn-secondary" target="_blank"></a>
+            </div>
+        </div>
+    </div>
+
+    <button id="back-to-top" class="back-to-top" aria-label="Back to Top">↑</button>
 
     <script src="app.js"></script>
 </body>

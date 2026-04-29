@@ -1,6 +1,5 @@
 (function () {
     const WA = '2348065062418';
-    // Fix 1: Added CORS-friendly Google Visualization API endpoint
     const CSV_URL = 'https://docs.google.com/spreadsheets/d/1t8sywPs9mSf4p3tNqrOzbd9nYujvwv2ixyPmtP6ltEo/gviz/tq?tqx=out:csv&gid=1489947803';
 
     const DEMO = [
@@ -15,7 +14,9 @@
 
     // --- CSV Parser ---
     function parseCSV(text) {
-        const lines = []; let current = ''; let inQuotes = false;
+        const lines = [];
+        let current = '';
+        let inQuotes = false;
         for (let i = 0; i < text.length; i++) {
             const c = text[i];
             if (c === '"') { inQuotes = !inQuotes; current += c; }
@@ -24,21 +25,37 @@
         }
         if (current.trim()) lines.push(current);
         if (lines.length < 2) return [];
+
         const parseRow = (row) => {
-            const fields = []; let field = ''; let q = false;
+            const fields = [];
+            let field = '';
+            let q = false;
             for (let i = 0; i < row.length; i++) {
                 const c = row[i];
-                if (c === '"') { q = !q; }
-                else if (c === ',' && !q) { fields.push(field.trim()); field = ''; }
-                else { field += c; }
+                if (c === '"') {
+                    if (q && row[i + 1] === '"') { // Escaped quote ""
+                        field += '"';
+                        i++;
+                    } else {
+                        q = !q;
+                    }
+                } else if (c === ',' && !q) {
+                    fields.push(field.trim());
+                    field = '';
+                } else {
+                    field += c;
+                }
             }
-            fields.push(field.trim()); return fields;
+            fields.push(field.trim());
+            return fields;
         };
+
         const headers = parseRow(lines[0]).map(h => h.replace(/\n/g, ' ').replace(/\(.*$/s, '').trim().toLowerCase());
         const results = [];
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
-            const vals = parseRow(lines[i]); const row = {};
+            const vals = parseRow(lines[i]);
+            const row = {};
             headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
             results.push(row);
         }
@@ -47,8 +64,9 @@
 
     function matchCol(row, keywords) {
         for (const key of Object.keys(row)) {
+            const k = key.toLowerCase();
             for (const kw of keywords) {
-                if (key.includes(kw) && row[key].trim() !== '') return row[key];
+                if (k.includes(kw) && row[key].trim() !== '') return row[key];
             }
         }
         return '';
@@ -72,7 +90,7 @@
 
     // BACS Diagnostic Formula Implementation: B = M × (D + F) × P
     function calcBACS(op) {
-        let score = 7.0; // Baseline Verified [cite: 2025-10-26]
+        let score = 7.0;
         const hrs = parseInt((op.hours || '').replace(/[^0-9]/g, '')) || 0;
         if (hrs > 10000) score += 1.5;
         else if (hrs > 5000) score += 1.0;
@@ -90,11 +108,18 @@
     }
 
     function countUp(el, target, duration) {
-        let start = 0; const step = target / (duration / 16);
+        if (!el) return;
+        let start = 0;
+        const steps = duration / 16;
+        const step = target / steps;
         const timer = setInterval(() => {
             start += step;
-            if (start >= target) { el.textContent = target; clearInterval(timer); }
-            else { el.textContent = Math.floor(start); }
+            if (start >= target) {
+                el.textContent = target;
+                clearInterval(timer);
+            } else {
+                el.textContent = Math.floor(start);
+            }
         }, 16);
     }
 
@@ -105,7 +130,8 @@
             'open to offers': { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', label: '◎ Open to Offers' }
         };
         const key = (status || '').toLowerCase().trim();
-        const cfg = Object.keys(map).find(k => key.includes(k)) ? map[Object.keys(map).find(k => key.includes(k))] : null;
+        const found = Object.keys(map).find(k => key.includes(k));
+        const cfg = found ? map[found] : null;
         if (!cfg) return '';
         return `<span class="avail-badge" style="color:${cfg.color};background:${cfg.bg};border-color:${cfg.color}20">${cfg.label}</span>`;
     }
@@ -114,9 +140,15 @@
         const grid = document.getElementById('operators-grid');
         const loading = document.getElementById('loading-state');
         const empty = document.getElementById('empty-state');
-        loading.style.display = 'none';
-        if (!ops.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-        empty.style.display = 'none';
+        if (loading) loading.style.display = 'none';
+        if (!grid) return;
+
+        if (!ops.length) {
+            grid.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
 
         grid.innerHTML = ops.map((op, i) => {
             const bacs = calcBACS(op);
@@ -155,7 +187,8 @@
                     av.style.backgroundImage = `url(${url})`;
                     av.style.backgroundSize = 'cover';
                     av.style.backgroundPosition = 'center';
-                    av.querySelector('.avatar-initials').style.display = 'none';
+                    const initials = av.querySelector('.avatar-initials');
+                    if (initials) initials.style.display = 'none';
                 };
                 img.src = url;
             }
@@ -170,6 +203,7 @@
     function buildChips(ops) {
         const trades = [...new Set(ops.map(o => o.trade))].sort();
         const container = document.getElementById('filter-chips');
+        if (!container) return;
         container.innerHTML = `<button class="chip active" data-trade="all">All Trades <span class="chip-count">${ops.length}</span></button>` +
             trades.map(t => {
                 const count = ops.filter(o => o.trade === t).length;
@@ -207,98 +241,103 @@
 
     function openModal(op) {
         const modal = document.getElementById('operator-modal');
+        if (!modal) return;
         const bacs = calcBACS(op);
         const assetContainer = document.getElementById('modal-multi-assets');
-        assetContainer.innerHTML = '';
+        if (assetContainer) {
+            assetContainer.innerHTML = '';
+            const videos = (op.video || '').split(/[,\n;]/).map(v => v.trim()).filter(v => v !== '' && !v.toLowerCase().includes('link'));
+            const logics = (op.steps || '').split(/Step 1:|Video \d:|Logic \d:/i).map(l => l.trim()).filter(l => l !== '');
 
-        const videos = (op.video || '').split(/[,\n]/).map(v => v.trim()).filter(v => v !== '');
-        const logics = (op.steps || '').split(/Step 1:|Video \d:|Logic \d:/i).map(l => l.trim()).filter(l => l !== '');
-
-        if (videos.length === 0) {
-            assetContainer.innerHTML = `
-                <div class="video-container">
-                    <div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Video proof pending upload</span></div>
-                </div>`;
-        } else {
-            videos.forEach((vid, index) => {
-                const ytId = extractYouTubeId(vid);
-                let videoHTML = '';
-                if (ytId) {
-                    videoHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" allowfullscreen loading="lazy"></iframe>`;
-                } else if (vid.includes('drive.google.com') || vid.endsWith('.mp4')) {
-                    let src = vid;
-                    if (src.includes('drive.google.com') && src.includes('/file/d/')) {
-                        const fid = src.match(/\/file\/d\/([^/]+)/);
-                        if (fid) src = `https://drive.google.com/file/d/${fid[1]}/preview`;
+            if (videos.length === 0) {
+                assetContainer.innerHTML = `<div class="video-container"><div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Video proof pending upload</span></div></div>`;
+            } else {
+                videos.forEach((vid, index) => {
+                    const ytId = extractYouTubeId(vid);
+                    let videoHTML = '';
+                    if (ytId) {
+                        videoHTML = `<iframe src="https://www.youtube.com/embed/${ytId}" allowfullscreen loading="lazy"></iframe>`;
+                    } else if (vid.includes('drive.google.com') || vid.endsWith('.mp4')) {
+                        let src = vid;
+                        if (src.includes('drive.google.com') && src.includes('/file/d/')) {
+                            const fid = src.match(/\/file\/d\/([^/]+)/);
+                            if (fid) src = `https://drive.google.com/file/d/${fid[1]}/preview`;
+                        }
+                        videoHTML = `<iframe src="${src}" allowfullscreen loading="lazy"></iframe>`;
+                    } else {
+                        videoHTML = `<div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Format not supported</span></div>`;
                     }
-                    videoHTML = `<iframe src="${src}" allowfullscreen loading="lazy"></iframe>`;
-                } else {
-                    videoHTML = `<div class="no-video"><span style="font-size:2.5rem">🎬</span><span>Format not supported</span></div>`;
-                }
-
-                const logicText = logics[index] || 'Operational logic for this video not yet submitted.';
-
-                assetContainer.innerHTML += `
-                    <div class="modal-section">
-                        <h3><span>🎬</span> Proof Segment ${index + 1}</h3>
-                        <div class="video-container">${videoHTML}</div>
-                        <div class="logic-step" style="border-left: 2px solid var(--accent); padding-left: 16px; margin-top: 16px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 4px;"><strong>🔧 Operational Logic:</strong><br><span style="opacity:0.9; font-style: italic;">${logicText}</span></div>
-                    </div>`;
-            });
+                    const logicText = logics[index] || 'Operational logic for this video not yet submitted.';
+                    assetContainer.innerHTML += `<div class="modal-section"><h3><span>🎬</span> Proof Segment ${index + 1}</h3><div class="video-container">${videoHTML}</div><div class="logic-step" style="border-left: 2px solid var(--accent); padding-left: 16px; margin-top: 16px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 4px;"><strong>🔧 Operational Logic:</strong><br><span style="opacity:0.9; font-style: italic;">${logicText}</span></div></div>`;
+                });
+            }
         }
 
         const photoEl = document.getElementById('modal-photo');
-        photoEl.style.display = 'none';
-        if (op.photo) {
-            const img = new Image();
-            img.onload = () => { photoEl.src = op.photo; photoEl.style.display = 'block'; };
-            img.src = op.photo;
+        if (photoEl) {
+            photoEl.style.display = 'none';
+            if (op.photo) {
+                const img = new Image();
+                img.onload = () => { photoEl.src = op.photo; photoEl.style.display = 'block'; };
+                img.src = op.photo;
+            }
         }
 
-        document.getElementById('modal-name').textContent = op.name;
-        document.getElementById('modal-trade').textContent = op.trade;
-        document.getElementById('modal-bacs-score').textContent = bacs + '/10';
-        document.getElementById('modal-availability').innerHTML = availabilityBadge(op.availability);
-        document.getElementById('modal-machines').textContent = op.machines || 'Not specified';
-        document.getElementById('modal-hours').textContent = op.hours || 'Not specified';
-        const envList = (op.env || 'Not specified').split(',').map(e => `<span style="display:inline-block; padding:4px 8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; font-size:0.75rem; font-weight:600; margin-right:6px; margin-bottom:6px;">${e.trim()}</span>`).join('');
-        document.getElementById('modal-env').innerHTML = envList;
-        document.getElementById('modal-steps').innerHTML = `<div style="border-left: 2px solid var(--accent); padding-left: 16px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 4px; white-space: pre-line; font-style: italic; color: var(--text-primary); font-size: 0.95rem;">${op.steps || 'Operational logic not yet submitted.'}</div>`;
+        const setSafeText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+        setSafeText('modal-name', op.name);
+        setSafeText('modal-trade', op.trade);
+        setSafeText('modal-bacs-score', bacs + '/10');
+        const availEl = document.getElementById('modal-availability');
+        if (availEl) availEl.innerHTML = availabilityBadge(op.availability);
+        setSafeText('modal-machines', op.machines || 'Not specified');
+        setSafeText('modal-hours', op.hours || 'Not specified');
+
+        const envEl = document.getElementById('modal-env');
+        if (envEl) {
+            envEl.innerHTML = (op.env || 'Not specified').split(',').map(e => `<span style="display:inline-block; padding:4px 8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; font-size:0.75rem; font-weight:600; margin-right:6px; margin-bottom:6px;">${e.trim()}</span>`).join('');
+        }
+
+        const stepsEl = document.getElementById('modal-steps');
+        if (stepsEl) {
+            stepsEl.innerHTML = `<div style="border-left: 2px solid var(--accent); padding-left: 16px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 4px; white-space: pre-line; font-style: italic; color: var(--text-primary); font-size: 0.95rem;">${op.steps || 'Operational logic not yet submitted.'}</div>`;
+        }
 
         const certSection = document.getElementById('id-gate-section');
         const certImage = document.getElementById('modal-id-image');
-        if (op.cert) {
-            certImage.src = op.cert;
-            certSection.style.display = 'block';
-        } else {
-            certSection.style.display = 'none';
+        if (certSection && certImage) {
+            if (op.cert) { certImage.src = op.cert; certSection.style.display = 'block'; }
+            else { certSection.style.display = 'none'; }
         }
 
         const isAvailable = (op.availability || '').toLowerCase().includes('available');
         const btnHire = document.getElementById('btn-hire');
-        const encodedName = encodeURIComponent(op.name);
-        const encodedTrade = encodeURIComponent(op.trade);
-
-        btnHire.style.display = 'flex';
-        if (isAvailable) {
-            btnHire.innerHTML = `<span>💬</span> Hire / Negotiate`;
-            btnHire.className = `btn btn-primary`;
-            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_`;
-        } else {
-            btnHire.innerHTML = `<span>⏳</span> Join Waitlist`;
-            btnHire.className = `btn btn-secondary`;
-            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20be%20notified%20when%20${encodedName}%20is%20off-project.`;
+        if (btnHire) {
+            const encodedName = encodeURIComponent(op.name);
+            const encodedTrade = encodeURIComponent(op.trade);
+            btnHire.style.display = 'flex';
+            if (isAvailable) {
+                btnHire.innerHTML = `<span>💬</span> Hire / Negotiate`;
+                btnHire.className = `btn btn-primary`;
+                btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_`;
+            } else {
+                btnHire.innerHTML = `<span>⏳</span> Join Waitlist`;
+                btnHire.className = `btn btn-secondary`;
+                btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20be%20notified%20when%20${encodedName}%20is%20off-project.`;
+            }
         }
 
         const maneuverBtn = document.getElementById('btn-maneuver');
-        const fee = (op.maneuver_fee || '').replace(/[^0-9,]/g, '').trim();
-        // Fix 2: Removed redeclaration of encodedName/encodedTrade
-        if (fee) {
-            maneuverBtn.innerHTML = `<span>🎥</span> Request Custom Maneuver — ₦${fee}`;
-            maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).%20Ready%20to%20pay%20₦${encodeURIComponent(fee)}`;
-        } else {
-            maneuverBtn.innerHTML = `<span>🎥</span> Request Maneuver Demo — Get Quote`;
-            maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).`;
+        if (maneuverBtn) {
+            const encodedName = encodeURIComponent(op.name);
+            const encodedTrade = encodeURIComponent(op.trade);
+            const fee = (op.maneuver_fee || '').replace(/[^0-9,]/g, '').trim();
+            if (fee) {
+                maneuverBtn.innerHTML = `<span>🎥</span> Request Custom Maneuver — ₦${fee}`;
+                maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).%20Ready%20to%20pay%20₦${encodeURIComponent(fee)}`;
+            } else {
+                maneuverBtn.innerHTML = `<span>🎥</span> Request Maneuver Demo — Get Quote`;
+                maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).`;
+            }
         }
 
         modal.style.display = 'flex';
@@ -306,40 +345,51 @@
     }
 
     function closeModal() {
-        document.getElementById('operator-modal').style.display = 'none';
+        const modal = document.getElementById('operator-modal');
+        if (modal) modal.style.display = 'none';
         document.body.style.overflow = '';
-        document.getElementById('modal-multi-assets').innerHTML = '';
+        const assets = document.getElementById('modal-multi-assets');
+        if (assets) assets.innerHTML = '';
     }
 
     function initBackToTop() {
         const btn = document.getElementById('back-to-top');
+        if (!btn) return;
         window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 400));
         btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 
     async function init() {
-        document.getElementById('modal-close').addEventListener('click', closeModal);
-        document.getElementById('operator-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+        const bind = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+        bind('modal-close', 'click', closeModal);
+        const modal = document.getElementById('operator-modal');
+        if (modal) modal.addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-        document.getElementById('search-input').addEventListener('input', e => { searchTerm = e.target.value; applyFilters(); });
-
-        document.getElementById('bacs-info-btn').addEventListener('click', e => {
+        bind('search-input', 'input', e => { searchTerm = e.target.value; applyFilters(); });
+        bind('bacs-info-btn', 'click', e => {
             e.stopPropagation();
-            document.getElementById('bacs-popover').classList.toggle('visible');
+            const pop = document.getElementById('bacs-popover');
+            if (pop) pop.classList.toggle('visible');
         });
 
         initBackToTop();
 
         try {
+            console.log("Fetching operators...");
             const res = await fetch(CSV_URL);
             if (!res.ok) throw new Error('Network response was not ok');
             const text = await res.text();
-            const normalised = normalise(parseCSV(text));
+            console.log("CSV received, parsing...");
+            const parsed = parseCSV(text);
+            const normalised = normalise(parsed);
+            console.log("Normalised operators:", normalised.length);
             operators = normalised.length > 0 ? normalised : DEMO;
+            if (normalised.length === 0) console.warn("No operators found in CSV, using DEMO data.");
         } catch (e) {
-            console.error("Fetch failed:", e);
+            console.error("Fetch failed, using DEMO data:", e);
             operators = DEMO;
-            document.getElementById('demo-banner').style.display = 'flex';
+            const banner = document.getElementById('demo-banner');
+            if (banner) banner.style.display = 'flex';
         }
 
         countUp(document.getElementById('stat-operators'), operators.length, 900);
