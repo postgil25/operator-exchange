@@ -1,8 +1,7 @@
 (function () {
     const WA = '2348065062418';
-    // Fix 1: Added CORS Proxy to allow Google Sheets fetching
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1t8sywPs9mSf4p3tNqrOzbd9nYujvwv2ixyPmtP6ltEo/export?format=csv&gid=1489947803';
-    const CSV_URL = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
+    // Fix 1: Added CORS-friendly Google Visualization API endpoint
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/1t8sywPs9mSf4p3tNqrOzbd9nYujvwv2ixyPmtP6ltEo/gviz/tq?tqx=out:csv&gid=1489947803';
 
     const DEMO = [
         { name: 'Adebayo Okoro', trade: 'Excavator Operator', photo: '', machines: 'CAT 320D, Komatsu PC200', hours: '8,500 hrs', env: 'Swamp, Urban, Highway', steps: 'Step 1: Positioned the CAT 320D at a 30° offset from the trench line to maximise reach without destabilising the bank.\nStep 2: Engaged a controlled bucket-drag to clear waterlogged clay — gear set to Fine Mode to prevent over-dig.\nStep 3: Used the boom-float function to level the trench base within ±5cm tolerance, verified by laser level.', video: '', availability: 'Available', maneuver_fee: '', cert: '' },
