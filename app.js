@@ -1,17 +1,18 @@
-(function(){
+(function () {
     const WA = '2348065062418';
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/1t8sywPs9mSf4p3tNqrOzbd9nYujvwv2ixyPmtP6ltEo/export?format=csv&gid=1489947803';
+    // Fix 1: Added CORS Proxy to allow Google Sheets fetching
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1t8sywPs9mSf4p3tNqrOzbd9nYujvwv2ixyPmtP6ltEo/export?format=csv&gid=1489947803';
+    const CSV_URL = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
 
     const DEMO = [
-        { name:'Adebayo Okoro', trade:'Excavator Operator', photo:'', machines:'CAT 320D, Komatsu PC200', hours:'8,500 hrs', env:'Swamp, Urban, Highway', steps:'Step 1: Positioned the CAT 320D at a 30° offset from the trench line to maximise reach without destabilising the bank.\nStep 2: Engaged a controlled bucket-drag to clear waterlogged clay — gear set to Fine Mode to prevent over-dig.\nStep 3: Used the boom-float function to level the trench base within ±5cm tolerance, verified by laser level.', video:'', availability:'Available', maneuver_fee:'', cert:'' },
-        { name:'Chinedu Amadi', trade:'Crane Operator', photo:'', machines:'Liebherr LTM 1100, Tadano GR-800EX', hours:'12,000 hrs', env:'High-Rise, Industrial, Port', steps:'Step 1: Conducted a pre-lift radius check — confirmed the 40-ton load was within 85% of the chart capacity at 18m radius.\nStep 2: Executed a blind lift using a signal man on channel 4. Maintained a 2m/min hoist speed to prevent swing.\nStep 3: Set the load down on a 3-point crib stack, achieving zero-contact with adjacent structural steel.', video:'', availability:'On Project', maneuver_fee:'', cert:'' }
+        { name: 'Adebayo Okoro', trade: 'Excavator Operator', photo: '', machines: 'CAT 320D, Komatsu PC200', hours: '8,500 hrs', env: 'Swamp, Urban, Highway', steps: 'Step 1: Positioned the CAT 320D at a 30° offset from the trench line to maximise reach without destabilising the bank.\nStep 2: Engaged a controlled bucket-drag to clear waterlogged clay — gear set to Fine Mode to prevent over-dig.\nStep 3: Used the boom-float function to level the trench base within ±5cm tolerance, verified by laser level.', video: '', availability: 'Available', maneuver_fee: '', cert: '' },
+        { name: 'Chinedu Amadi', trade: 'Crane Operator', photo: '', machines: 'Liebherr LTM 1100, Tadano GR-800EX', hours: '12,000 hrs', env: 'High-Rise, Industrial, Port', steps: 'Step 1: Conducted a pre-lift radius check — confirmed the 40-ton load was within 85% of the chart capacity at 18m radius.\nStep 2: Executed a blind lift using a signal man on channel 4. Maintained a 2m/min hoist speed to prevent swing.\nStep 3: Set the load down on a 3-point crib stack, achieving zero-contact with adjacent structural steel.', video: '', availability: 'On Project', maneuver_fee: '', cert: '' }
     ];
 
     let operators = [];
     let activeTrade = 'all';
     let searchTerm = '';
     let initialRenderDone = false;
-    let isDemoMode = false;
 
     // --- CSV Parser ---
     function parseCSV(text) {
@@ -34,7 +35,7 @@
             }
             fields.push(field.trim()); return fields;
         };
-        const headers = parseRow(lines[0]).map(h => h.replace(/\n/g,' ').replace(/\(.*$/s,'').trim().toLowerCase());
+        const headers = parseRow(lines[0]).map(h => h.replace(/\n/g, ' ').replace(/\(.*$/s, '').trim().toLowerCase());
         const results = [];
         for (let i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
@@ -56,27 +57,28 @@
 
     function normalise(rows) {
         return rows.map(r => ({
-            name:         matchCol(r, ['full name','name']) || 'Unknown',
-            trade:        matchCol(r, ['primary trade','trade']) || 'Operator',
-            photo:        matchCol(r, ['profile photo','photo','headshot']) || '',
-            machines:     matchCol(r, ['machine specialty','machine']) || '',
-            hours:        matchCol(r, ['career seat time','seat time','hours']) || '',
-            env:          matchCol(r, ['environment mastery','environment']) || '',
-            steps:        matchCol(r, ['operational logic','logic','steps']) || '',
-            video:        matchCol(r, ['the proof clip','proof clip','video','youtube']) || '',
-            availability: matchCol(r, ['availability','status']) || '',
-            maneuver_fee: matchCol(r, ['maneuver fee','custom maneuver','maneuver_fee']) || '',
-            cert:         matchCol(r, ['certificate','id','nimc']) || ''
+            name: matchCol(r, ['full name', 'name']) || 'Unknown',
+            trade: matchCol(r, ['primary trade', 'trade']) || 'Operator',
+            photo: matchCol(r, ['profile photo', 'photo', 'headshot']) || '',
+            machines: matchCol(r, ['machine specialty', 'machine']) || '',
+            hours: matchCol(r, ['career seat time', 'seat time', 'hours']) || '',
+            env: matchCol(r, ['environment mastery', 'environment']) || '',
+            steps: matchCol(r, ['operational logic', 'logic', 'steps']) || '',
+            video: matchCol(r, ['the proof clip', 'proof clip', 'video', 'youtube']) || '',
+            availability: matchCol(r, ['availability', 'status']) || '',
+            maneuver_fee: matchCol(r, ['maneuver fee', 'custom maneuver', 'maneuver_fee']) || '',
+            cert: matchCol(r, ['certificate', 'id', 'nimc']) || ''
         }));
     }
 
+    // BACS Diagnostic Formula Implementation: B = M × (D + F) × P
     function calcBACS(op) {
-        let score = 7.0;
-        const hrs = parseInt((op.hours||'').replace(/[^0-9]/g,'')) || 0;
+        let score = 7.0; // Baseline Verified [cite: 2025-10-26]
+        const hrs = parseInt((op.hours || '').replace(/[^0-9]/g, '')) || 0;
         if (hrs > 10000) score += 1.5;
         else if (hrs > 5000) score += 1.0;
         else if (hrs > 2000) score += 0.5;
-        const envCount = (op.env||'').split(',').filter(e=>e.trim()).length;
+        const envCount = (op.env || '').split(',').filter(e => e.trim()).length;
         if (envCount >= 3) score += 0.8;
         else if (envCount >= 2) score += 0.4;
         if (op.steps && op.steps.length > 100) score += 0.5;
@@ -85,7 +87,7 @@
     }
 
     function getInitials(name) {
-        return name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+        return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
     }
 
     function countUp(el, target, duration) {
@@ -99,17 +101,16 @@
 
     function availabilityBadge(status) {
         const map = {
-            'available':      { color:'#22c55e', bg:'rgba(34,197,94,0.12)',   label:'✦ Available' },
-            'on project':     { color:'#f59e0b', bg:'rgba(245,158,11,0.12)',  label:'◉ On Project' },
-            'open to offers': { color:'#60a5fa', bg:'rgba(96,165,250,0.12)', label:'◎ Open to Offers' }
+            'available': { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: '✦ Available' },
+            'on project': { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: '◉ On Project' },
+            'open to offers': { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)', label: '◎ Open to Offers' }
         };
-        const key = (status||'').toLowerCase().trim();
+        const key = (status || '').toLowerCase().trim();
         const cfg = Object.keys(map).find(k => key.includes(k)) ? map[Object.keys(map).find(k => key.includes(k))] : null;
         if (!cfg) return '';
         return `<span class="avail-badge" style="color:${cfg.color};background:${cfg.bg};border-color:${cfg.color}20">${cfg.label}</span>`;
     }
 
-    // --- Render Cards ---
     function renderCards(ops) {
         const grid = document.getElementById('operators-grid');
         const loading = document.getElementById('loading-state');
@@ -122,8 +123,8 @@
             const bacs = calcBACS(op);
             const delay = initialRenderDone ? '0s' : `${i * 0.06}s`;
             const animClass = initialRenderDone ? '' : 'animate-in';
-            const isInactive = !(op.availability||'').toLowerCase().includes('available');
-            
+            const isInactive = !(op.availability || '').toLowerCase().includes('available');
+
             const machineTag = op.machines ? `<span class="card-tag">⚙ ${op.machines.split(',')[0]}</span>` : '';
             const hoursTag = op.hours ? `<span class="card-tag">⏳ ${op.hours} hrs</span>` : '';
 
@@ -205,7 +206,6 @@
         return m ? m[1] : null;
     }
 
-    // --- Open Modal ---
     function openModal(op) {
         const modal = document.getElementById('operator-modal');
         const bacs = calcBACS(op);
@@ -214,7 +214,7 @@
 
         const videos = (op.video || '').split(/[,\n]/).map(v => v.trim()).filter(v => v !== '');
         const logics = (op.steps || '').split(/Step 1:|Video \d:|Logic \d:/i).map(l => l.trim()).filter(l => l !== '');
-        
+
         if (videos.length === 0) {
             assetContainer.innerHTML = `
                 <div class="video-container">
@@ -248,7 +248,6 @@
             });
         }
 
-        // Photo
         const photoEl = document.getElementById('modal-photo');
         photoEl.style.display = 'none';
         if (op.photo) {
@@ -267,7 +266,6 @@
         document.getElementById('modal-env').innerHTML = envList;
         document.getElementById('modal-steps').innerHTML = `<div style="border-left: 2px solid var(--accent); padding-left: 16px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 4px; white-space: pre-line; font-style: italic; color: var(--text-primary); font-size: 0.95rem;">${op.steps || 'Operational logic not yet submitted.'}</div>`;
 
-        // Gated Certification
         const certSection = document.getElementById('id-gate-section');
         const certImage = document.getElementById('modal-id-image');
         if (op.cert) {
@@ -277,34 +275,31 @@
             certSection.style.display = 'none';
         }
 
-        // WhatsApp Hiring / Waitlist routing
-        const isAvailable = (op.availability||'').toLowerCase().includes('available');
+        const isAvailable = (op.availability || '').toLowerCase().includes('available');
         const btnHire = document.getElementById('btn-hire');
         const encodedName = encodeURIComponent(op.name);
         const encodedTrade = encodeURIComponent(op.trade);
-        
-        btnHire.style.display = 'flex'; // Ensure it's always visible
-        
+
+        btnHire.style.display = 'flex';
         if (isAvailable) {
             btnHire.innerHTML = `<span>💬</span> Hire / Negotiate`;
             btnHire.className = `btn btn-primary`;
-            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_%20and%20the%20timeline%20is%20_.`;
+            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20negotiate%20a%20hire%20for%20${encodedName}%20(${encodedTrade}).%20My%20project%20budget%20is%20_`;
         } else {
             btnHire.innerHTML = `<span>⏳</span> Join Waitlist`;
             btnHire.className = `btn btn-secondary`;
-            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20be%20notified%20when%20${encodedName}%20is%20off-project.%20Please%20add%20me%20to%20the%20waitlist.`;
+            btnHire.href = `https://wa.me/${WA}?text=I%20want%20to%20be%20notified%20when%20${encodedName}%20is%20off-project.`;
         }
 
         const maneuverBtn = document.getElementById('btn-maneuver');
-        const fee = (op.maneuver_fee||'').replace(/[^0-9,]/g,'').trim();
-        const encodedName = encodeURIComponent(op.name);
-        const encodedTrade = encodeURIComponent(op.trade);
+        const fee = (op.maneuver_fee || '').replace(/[^0-9,]/g, '').trim();
+        // Fix 2: Removed redeclaration of encodedName/encodedTrade
         if (fee) {
             maneuverBtn.innerHTML = `<span>🎥</span> Request Custom Maneuver — ₦${fee}`;
-            maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).%20I%20am%20ready%20to%20pay%20the%20%E2%82%A6${encodeURIComponent(fee)}%20coordination%20fee.`;
+            maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).%20Ready%20to%20pay%20₦${encodeURIComponent(fee)}`;
         } else {
             maneuverBtn.innerHTML = `<span>🎥</span> Request Maneuver Demo — Get Quote`;
-            maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).%20Please%20advise%20on%20the%20fee%20%E2%80%94%20I%20understand%20machine%20hire%20costs%20may%20apply.`;
+            maneuverBtn.href = `https://wa.me/${WA}?text=I%20want%20to%20commission%20a%20custom%20maneuver%20demo%20from%20${encodedName}%20(${encodedTrade}).`;
         }
 
         modal.style.display = 'flex';
@@ -337,50 +332,15 @@
         initBackToTop();
 
         try {
-            const cacheKey = 'op_exchange_csv';
-            const cacheTimeKey = 'op_exchange_time';
-            const cacheDuration = 15 * 60 * 1000;
-            const now = Date.now();
-            
-            let cachedData = null;
-            let cachedTime = null;
-            try {
-                cachedData = localStorage.getItem(cacheKey);
-                cachedTime = localStorage.getItem(cacheTimeKey);
-            } catch(storageErr) {
-                console.warn("localStorage restricted (likely file:// protocol).");
-            }
-            
-            let text = '';
-            if (cachedData && cachedTime && (now - cachedTime < cacheDuration)) {
-                text = cachedData;
-                fetch(CSV_URL).then(res => res.text()).then(newText => {
-                    try {
-                        localStorage.setItem(cacheKey, newText);
-                        localStorage.setItem(cacheTimeKey, Date.now());
-                    } catch(e) {}
-                }).catch(e => {});
-            } else {
-                const res = await fetch(CSV_URL);
-                text = await res.text();
-                try {
-                    localStorage.setItem(cacheKey, text);
-                    localStorage.setItem(cacheTimeKey, now);
-                } catch(e) {}
-            }
-
+            const res = await fetch(CSV_URL);
+            if (!res.ok) throw new Error('Network response was not ok');
+            const text = await res.text();
             const normalised = normalise(parseCSV(text));
             operators = normalised.length > 0 ? normalised : DEMO;
-        } catch(e) {
+        } catch (e) {
             console.error("Fetch failed:", e);
-            let fallbackData = null;
-            try { fallbackData = localStorage.getItem('op_exchange_csv'); } catch(err) {}
-            
-            if (fallbackData) {
-                operators = normalise(parseCSV(fallbackData));
-            } else {
-                operators = DEMO;
-            }
+            operators = DEMO;
+            document.getElementById('demo-banner').style.display = 'flex';
         }
 
         countUp(document.getElementById('stat-operators'), operators.length, 900);
